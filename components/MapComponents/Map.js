@@ -2,164 +2,141 @@ import React, { Component } from "react";
 import { AppRegistry, StyleSheet, Dimensions, Image, View, StatusBar, TouchableOpacity } from "react-native";
 import { Container, Text } from "native-base";
 import {Icon} from 'native-base';
-import MapView ,{ Polyline } from 'react-native-maps';
+import MapView from 'react-native-maps';
+import Polyline from '@mapbox/polyline';
+import MapViewDirections from 'react-native-maps-directions';
 
+const { width, height } = Dimensions.get('window');
+const ASPECT_RATIO = width / height;
+const LATITUDE = 18.9718;
+const LONGITUDE = 72.8436;
+const LATITUDE_DELTA = 0.0922;
+const LONGITUDE_DELTA = LATITUDE_DELTA * ASPECT_RATIO;
 
+const GOOGLE_MAPS_APIKEY = 'AIzaSyDEtfjgeNO4fVejyijkgH32s6COVFK0ZKc';
 
 class Mymap extends Component {
-    static navigationOptions = {
-        tabBarIcon:({tintColor})=>(
-          <Icon name="person" style={{color:tintColor}} />
-        )
-      }
-    
-    constructor(props) {
-      super(props);
-  
-      this.state = {
-        latitude: 18.9718,
-        longitude: 72.8436,
-        error: null,
-        concat: null,
-        coords:[],
-        x: 'false',
-        cordLatitude:19.0361,
-        cordLongitude:72.9486,
-      };
-  
-      this.mergeLot = this.mergeLot.bind(this);
-  
-    }
-  
-    componentDidMount() {
-      navigator.geolocation.getCurrentPosition(
-         (position) => {
-           this.setState({
-             latitude: this.state.latitude,
-             longitude: this.state.longitude,
-             error: null,
-           });
-           this.mergeLot();
-         },
-         (error) => this.setState({ error: error.message }),
-         { enableHighAccuracy: false, timeout: 200000, maximumAge: 1000 },
-       );
-  
-     }
-  
-    mergeLot(){
-      if (this.state.latitude != null && this.state.longitude!=null)
-       {
-         let concatLot = this.state.latitude +","+this.state.longitude
-         this.setState({
-           concat: concatLot
-         }, () => {
-           this.getDirections(concatLot, "19.0361,72.9486");
-         });
-       }
-  
-     }
-  
-     async getDirections(startLoc, destinationLoc) {
-  
-           try {
-               let resp = await fetch(`https://maps.googleapis.com/maps/api/directions/json?origin=${ startLoc }&destination=${ destinationLoc }`)
-               let respJson = await resp.json();
-               let points = Polyline.decode(respJson.routes[0].overview_polyline.points);
-               let coords = points.map((point, index) => {
-                   return  {
-                       latitude : point[0],
-                       longitude : point[1]
-                   }
-               })
-               this.setState({coords: coords})
-               this.setState({x: "true"})
-               return coords
-           } catch(error) {
-             console.log('masuk fungsi')
-               this.setState({x: "error"})
-               return error
-           }
-       }
-    render() {
-  
-      return (
-        <MapView 
-        showsUserLocation
-        style={styles.map} region={{
-            latitude: 18.9718,
-            longitude: 72.8436,
-         latitudeDelta: 1,
-         longitudeDelta: 1
-        }}>
-  
-        {!!this.state.latitude && !!this.state.longitude && <MapView.Marker
-           coordinate={{"latitude":this.state.latitude,"longitude":this.state.longitude}}
-           title={"Your Location"}
-         />}
-  
-         {!!this.state.cordLatitude && !!this.state.cordLongitude && <MapView.Marker
-            coordinate={{"latitude":this.state.cordLatitude,"longitude":this.state.cordLongitude}}
-            title={"Your Destination"}
-          />}
-  
-         {!!this.state.latitude && !!this.state.longitude && this.state.x == 'true' && <MapView.Polyline
-              coordinates={this.state.coords}
-              strokeWidth={2}
-              strokeColor="green">
-              <View style={styles.radius}>
-                <View style={styles.marker}/>    
-            </View>
-              </MapView.Polyline>
-          }
-  
-          {!!this.state.latitude && !!this.state.longitude && this.state.x == 'error' && <MapView.Polyline
-            coordinates={[
-                {latitude: this.state.latitude, longitude: this.state.longitude},
-                {latitude: this.state.cordLatitude, longitude: this.state.cordLongitude},
-            ]}
-            strokeWidth={2}
-            strokeColor="red">
-            <View style={styles.radius}>
-        <View style={styles.marker}/>    
-      </View>
-      </MapView.Polyline>
-     }
-           
-        </MapView>
-      );
-    }
-  }
-  
-  const styles = StyleSheet.create({
-    map: {
-        left:0,
-        right:0,
-        top:0,
-        bottom:0,
-        position:'absolute'
-    },
-    radius:{
-        height:50,
-        width:50,
-        borderRadius : 50 /2,
-        overflow:'hidden',
-        borderWidth:1,
-        backgroundColor:'rgba(0,122,255,0.1)',
-        borderColor:'rgba(0,112,255,0.3)',
-        alignItems: 'center',
-        justifyContent: 'center',
 
+  static navigationOptions = {
+    tabBarIcon:({tintColor})=>(
+      <Icon name="ios-map" style={{color:tintColor, fontSize:25}} />
+    )
+  }
+
+  constructor(props) {
+    super(props);
+
+    // AirBnB's Office, and Apple Park
+    this.state = {
+      coordinates: [
+        {
+          latitude: 19.0361,
+          longitude: 72.9486,
+        },
+        {
+          latitude: 18.9718,
+          longitude: 72.8436,
+        },
+      ],
+    };
+
+    this.mapView = null;
+  }
+
+  onMapPress = (e) => {
+    this.setState({
+      coordinates: [
+        ...this.state.coordinates,
+        e.nativeEvent.coordinate,
+      ],
+    });
+  }
+
+  render() {
+    return (
+      <MapView
+      showsUserLocation
+        region={{
+          latitude: LATITUDE,
+          longitude: LONGITUDE,
+          latitudeDelta: LATITUDE_DELTA,
+          longitudeDelta: LONGITUDE_DELTA,
+        }}
+        style={StyleSheet.absoluteFill}
+        ref={c => this.mapView = c}
+        onPress={this.onMapPress}
+      >
+        {this.state.coordinates.map((coordinate, index) =>
+          <MapView.Marker key={`coordinate_${index}`} coordinate={coordinate} >
+          <View style={styles.radius}>
+              <View style={styles.marker}/>    
+          </View>
+            </MapView.Marker>
+        )}
+        {(this.state.coordinates.length >= 2) && (
+          <MapViewDirections
+            origin={this.state.coordinates[0]}
+            waypoints={ (this.state.coordinates.length > 2) ? this.state.coordinates.slice(1, -1): null}
+            destination={this.state.coordinates[this.state.coordinates.length-1]}
+            apikey={GOOGLE_MAPS_APIKEY}
+            strokeWidth={3}
+            strokeColor="black"
+            onReady={(result) => {
+              this.mapView.fitToCoordinates(result.coordinates, {
+                edgePadding: {
+                  right: (width / 20),
+                  bottom: (height / 20),
+                  left: (width / 20),
+                  top: (height / 20),
+                }
+              });
+            }}
+            onError={(errorMessage) => {
+              //alert('GOT AN ERROR');
+            }}
+          />
+        )}
+      </MapView>
+    );
+  }
+}
+export default Mymap;
+
+const styles = StyleSheet.create({
+  container: {
+      flex: 1,
+      backgroundColor:"white",
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    marker:{
-        height:20,
-        width:20,
-        borderRadius : 20 /2,
-        borderWidth:3,
-        borderColor:'white',
-        overflow:'hidden',
-        backgroundColor:'#007AFF'
-    },
-  });
-  
-  export default Mymap;
+  map: {
+      left:0,
+      right:0,
+      top:0,
+      bottom:0,
+      position:'absolute'
+  },
+  radius:{
+      height:50,
+      width:50,
+      overflow:'hidden',
+      borderRadius : 50 /2,
+      borderWidth:2,
+      backgroundColor:'rgba(0,0,0,0.1)',
+      borderColor:'rgba(0,0,0,0.3)',
+      alignItems: 'center',
+      justifyContent: 'center',
+
+  },
+  marker:{
+      height:30,
+      width:30,
+      borderRadius : 30 /2,
+      borderWidth:4,
+      borderColor:'white',
+      overflow:'hidden',
+      backgroundColor:'black'
+  },
+});
+
+ 
