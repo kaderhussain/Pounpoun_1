@@ -22,6 +22,25 @@ class Mymap extends Component {
       <Icon name="ios-map" style={{color:tintColor, fontSize:25}} />
     )
   }
+//   render() {
+//     return (
+//       <View style={styles.container}>
+//         <Text>Profile Tab</Text>
+//       </View>
+//     );
+//   }
+// }
+
+// export default Mymap;
+
+// const styles = StyleSheet.create({
+//     container: {
+//       flex: 1,
+//       backgroundColor:"white",
+//       alignItems: 'center',
+//       justifyContent: 'center',
+//     },
+//   });
 
   constructor(props) {
     super(props);
@@ -37,6 +56,7 @@ class Mymap extends Component {
           latitude: 18.9718,
           longitude: 72.8436,
         },
+
       ],
     };
 
@@ -82,14 +102,7 @@ class Mymap extends Component {
             strokeWidth={3}
             strokeColor="black"
             onReady={(result) => {
-              this.mapView.fitToCoordinates(result.coordinates, {
-                edgePadding: {
-                  right: (width / 20),
-                  bottom: (height / 20),
-                  left: (width / 20),
-                  top: (height / 20),
-                }
-              });
+              this.mapView.fitToCoordinates(result.coordinates);
             }}
             onError={(errorMessage) => {
               //alert('GOT AN ERROR');
@@ -113,7 +126,7 @@ const styles = StyleSheet.create({
       left:0,
       right:0,
       top:0,
-      bottom:0,
+      bottom:20,
       position:'absolute'
   },
   radius:{
